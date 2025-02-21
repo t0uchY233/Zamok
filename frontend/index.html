@@ -64,9 +64,17 @@
         async function loadApartments() {
             try {
                 const response = await fetch('/api/apartments');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
                 const apartments = await response.json();
                 
                 const apartmentsList = document.getElementById('apartments-list');
+                if (apartments.length === 0) {
+                    apartmentsList.innerHTML = '<p>Нет доступных квартир</p>';
+                    return;
+                }
+                
                 apartments.forEach(apartment => {
                     const card = document.createElement('div');
                     card.className = 'apartment-card';
@@ -82,6 +90,8 @@
                 });
             } catch (error) {
                 console.error('Error loading apartments:', error);
+                const apartmentsList = document.getElementById('apartments-list');
+                apartmentsList.innerHTML = '<p>Ошибка при загрузке квартир. Пожалуйста, попробуйте позже.</p>';
             }
         }
         

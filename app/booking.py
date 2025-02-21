@@ -10,37 +10,46 @@ import os
 
 def update_google_sheet(booking_data):
     """Обновление Google Sheet с информацией о бронировании"""
-    credentials = service_account.Credentials.from_service_account_file(
-        os.getenv('GOOGLE_CREDENTIALS_FILE'),
-        scopes=['https://www.googleapis.com/auth/spreadsheets']
-    )
-    
-    service = build('sheets', 'v4', credentials=credentials)
-    spreadsheet_id = os.getenv('SPREADSHEET_ID')
-    
-    # Подготовка данных для записи
-    values = [[
-        booking_data['booking_id'],
-        booking_data['user_name'],
-        booking_data['apartment_title'],
-        booking_data['check_in_date'],
-        booking_data['check_out_date'],
-        booking_data['total_price'],
-        booking_data['status'],
-        datetime.now().isoformat()
-    ]]
-    
-    body = {
-        'values': values
-    }
-    
-    # Запись данных в таблицу
-    service.spreadsheets().values().append(
-        spreadsheetId=spreadsheet_id,
-        range='Bookings!A:H',
-        valueInputOption='RAW',
-        body=body
-    ).execute()
+    try:
+        credentials = service_account.Credentials.from_service_account_file(
+            os.getenv('GOOGLE_CREDENTIALS_FILE'),
+            scopes=['https://www.googleapis.com/auth/spreadsheets']
+        )
+        
+        service = build('sheets', 'v4', credentials=credentials)
+        spreadsheet_id = os.getenv('SPREADSHEET_ID')
+        
+        if not spreadsheet_id:
+            raise ValueError("SPREADSHEET_ID not configured")
+        
+        # Подготовка данных для записи
+        values = [[
+            booking_data['booking_id'],
+            booking_data['user_name'],
+            booking_data['apartment_title'],
+            booking_data['check_in_date'],
+            booking_data['check_out_date'],
+            booking_data['total_price'],
+            booking_data['status'],
+            datetime.now().isoformat()
+        ]]
+        
+        body = {
+            'values': values
+        }
+        
+        # Запись данных в таблицу
+        service.spreadsheets().values().append(
+            spreadsheetId=spreadsheet_id,
+            range='Bookings!A:H',
+            valueInputOption='RAW',
+            body=body
+        ).execute()
+        
+        return True
+    except Exception as e:
+        print(f"Error updating Google Sheet: {e}")
+        return False
 
 @app.route('/api/bookings/check-availability', methods=['POST'])
 def check_availability():

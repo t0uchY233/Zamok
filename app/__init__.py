@@ -6,8 +6,15 @@ import os
 # Загрузка переменных окружения
 load_dotenv()
 
+# Получаем абсолютный путь к директории проекта
+basedir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+
 # Инициализация Flask приложения
-app = Flask(__name__)
+app = Flask(__name__,
+    static_folder=os.path.join(basedir, 'frontend'),
+    static_url_path='',
+    template_folder=os.path.join(basedir, 'frontend')
+)
 
 # Конфигурация приложения
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key')
