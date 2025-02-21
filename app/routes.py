@@ -1,9 +1,18 @@
-from flask import jsonify, request
+from flask import jsonify, request, render_template, send_from_directory
 from app import app, db
 from app.database import User, Apartment, Booking, Payment
 from datetime import datetime
 import random
 import string
+import os
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/apartments')
+def apartments_page():
+    return render_template('index.html')
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
@@ -19,23 +28,6 @@ def get_apartments():
         'price_per_day': apt.price_per_day,
         'description': apt.description
     } for apt in apartments])
-
-@app.route('/api/bookings', methods=['POST'])
-def create_booking():
-    data = request.json
-    try:
-        booking = Booking(
-            user_id=data['user_id'],
-            apartment_id=data['apartment_id'],
-            check_in_date=datetime.fromisoformat(data['check_in_date']),
-            check_out_date=datetime.fromisoformat(data['check_out_date']),
-            total_price=data['total_price']
-        )
-        db.session.add(booking)
-        db.session.commit()
-        return jsonify({'status': 'success', 'booking_id': booking.id})
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 400
 
 @app.route('/api/access-code/<int:booking_id>', methods=['POST'])
 def generate_access_code(booking_id):
