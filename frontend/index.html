@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zamok - Аренда квартир</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            margin: 0;
+            padding: 16px;
+            background-color: var(--tg-theme-bg-color, #fff);
+            color: var(--tg-theme-text-color, #000);
+        }
+        
+        .apartment-card {
+            border: 1px solid var(--tg-theme-hint-color, #ccc);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        
+        .apartment-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        
+        .apartment-address {
+            color: var(--tg-theme-hint-color, #666);
+            margin-bottom: 8px;
+        }
+        
+        .apartment-price {
+            font-weight: bold;
+            color: var(--tg-theme-button-color, #2481cc);
+        }
+        
+        .book-button {
+            background-color: var(--tg-theme-button-color, #2481cc);
+            color: var(--tg-theme-button-text-color, #fff);
+            border: none;
+            border-radius: 4px;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div id="apartments-list">
+        <!-- Здесь будет список квартир -->
+    </div>
+
+    <script>
+        // Инициализация Telegram Mini App
+        const webapp = window.Telegram.WebApp;
+        webapp.ready();
+        
+        // Загрузка списка квартир
+        async function loadApartments() {
+            try {
+                const response = await fetch('/api/apartments');
+                const apartments = await response.json();
+                
+                const apartmentsList = document.getElementById('apartments-list');
+                apartments.forEach(apartment => {
+                    const card = document.createElement('div');
+                    card.className = 'apartment-card';
+                    card.innerHTML = `
+                        <div class="apartment-title">${apartment.title}</div>
+                        <div class="apartment-address">${apartment.address}</div>
+                        <div class="apartment-price">${apartment.price_per_day} ₽/сутки</div>
+                        <button class="book-button" onclick="bookApartment(${apartment.id})">
+                            Забронировать
+                        </button>
+                    `;
+                    apartmentsList.appendChild(card);
+                });
+            } catch (error) {
+                console.error('Error loading apartments:', error);
+            }
+        }
+        
+        // Функция бронирования
+        async function bookApartment(apartmentId) {
+            // Открываем основной интерфейс бота для продолжения бронирования
+            webapp.sendData(JSON.stringify({
+                action: 'book',
+                apartment_id: apartmentId
+            }));
+        }
+        
+        // Загружаем квартиры при загрузке страницы
+        loadApartments();
+    </script>
+</body>
+</html> 
