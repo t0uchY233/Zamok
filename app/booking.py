@@ -11,8 +11,22 @@ import os
 def update_google_sheet(booking_data):
     """Обновление Google Sheet с информацией о бронировании"""
     try:
+        app.logger.info(f"Начинаем обновление Google Sheet для бронирования {booking_data['booking_id']}")
+        
+        # Форматируем даты
+        check_in = datetime.fromisoformat(booking_data['check_in_date']).strftime("%d.%m.%Y %H:%M")
+        check_out = datetime.fromisoformat(booking_data['check_out_date']).strftime("%d.%m.%Y %H:%M")
+        current_time = datetime.now().strftime("%d.%m.%Y %H:%M")
+        
+        credentials_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), os.getenv('GOOGLE_CREDENTIALS_FILE') + '.json')
+        app.logger.info(f"Используем файл учетных данных: {credentials_file}")
+        
+        if not os.path.exists(credentials_file):
+            app.logger.error(f"Файл учетных данных не найден: {credentials_file}")
+            raise FileNotFoundError(f"Credentials file not found: {credentials_file}")
+        
         credentials = service_account.Credentials.from_service_account_file(
-            os.getenv('GOOGLE_CREDENTIALS_FILE'),
+            credentials_file,
             scopes=['https://www.googleapis.com/auth/spreadsheets']
         )
         
@@ -20,36 +34,52 @@ def update_google_sheet(booking_data):
         spreadsheet_id = os.getenv('SPREADSHEET_ID')
         
         if not spreadsheet_id:
+            app.logger.error("SPREADSHEET_ID не настроен")
             raise ValueError("SPREADSHEET_ID not configured")
+        
+        app.logger.info(f"Используем таблицу: {spreadsheet_id}")
         
         # Подготовка данных для записи
         values = [[
             booking_data['booking_id'],
             booking_data['user_name'],
             booking_data['apartment_title'],
-            booking_data['check_in_date'],
-            booking_data['check_out_date'],
+            check_in,
+            check_out,
             booking_data['total_price'],
             booking_data['status'],
-            datetime.now().isoformat()
+            current_time
         ]]
         
         body = {
             'values': values
         }
         
+        app.logger.info(f"Подготовленные данные: {values}")
+        
+        # Сначала получим информацию о листах
+        sheets_metadata = service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
+        sheets = sheets_metadata.get('sheets', '')
+        sheet_title = sheets[0]['properties']['title']  # Берем название первого листа
+        
+        app.logger.info(f"Название первого листа: {sheet_title}")
+        
         # Запись данных в таблицу
-        service.spreadsheets().values().append(
+        result = service.spreadsheets().values().append(
             spreadsheetId=spreadsheet_id,
-            range='Bookings!A:H',
+            range=f"'{sheet_title}'!A:H",  # Используем полученное название листа
             valueInputOption='RAW',
+            insertDataOption='INSERT_ROWS',
             body=body
         ).execute()
         
+        app.logger.info(f"Данные успешно записаны в таблицу: {result}")
         return True
+        
     except Exception as e:
-        print(f"Error updating Google Sheet: {e}")
-        return False
+        app.logger.error(f"Ошибка при обновлении Google Sheet: {str(e)}")
+        app.logger.exception(e)
+        raise
 
 @app.route('/api/bookings/check-availability', methods=['POST'])
 def check_availability():

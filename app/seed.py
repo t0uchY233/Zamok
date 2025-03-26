@@ -10,7 +10,8 @@ def seed_data():
             'description': 'Современная студия с панорамными окнами и новым ремонтом. Есть все необходимое для комфортного проживания.',
             'price_per_day': 2500.0,
             'is_available': True,
-            'smart_lock_id': 'LOCK001'
+            'smart_lock_id': 'LOCK001',
+            'image_url': 'https://example.com/images/apartment1.jpg'
         },
         {
             'title': 'Двухкомнатная квартира с видом на парк',
@@ -18,7 +19,8 @@ def seed_data():
             'description': 'Просторная квартира в тихом районе. Две раздельные комнаты, большая кухня, свежий ремонт.',
             'price_per_day': 3500.0,
             'is_available': True,
-            'smart_lock_id': 'LOCK002'
+            'smart_lock_id': 'LOCK002',
+            'image_url': 'https://example.com/images/apartment2.jpg'
         },
         {
             'title': 'Люкс апартаменты в бизнес-центре',
@@ -26,7 +28,8 @@ def seed_data():
             'description': 'Премиум квартира с дизайнерским ремонтом. Полностью укомплектована техникой, есть джакузи.',
             'price_per_day': 5000.0,
             'is_available': True,
-            'smart_lock_id': 'LOCK003'
+            'smart_lock_id': 'LOCK003',
+            'image_url': 'https://example.com/images/apartment3.jpg'
         }
     ]
     

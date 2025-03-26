@@ -39,6 +39,9 @@ if not TELEGRAM_TOKEN:
     logger.error("TELEGRAM_BOT_TOKEN не найден в переменных окружения!")
     raise ValueError("TELEGRAM_BOT_TOKEN не установлен")
 
+# URL вашего веб-приложения - замените на реальный URL вашего сервера
+WEBAPP_URL = API_BASE_URL
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик команды /start"""
     try:
@@ -53,7 +56,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             logger.error(f"Ошибка при проверке API: {str(api_error)}")
         
         keyboard = [
-            [InlineKeyboardButton("�� Просмотр квартир", callback_data='view_apartments')],
+            [InlineKeyboardButton("Просмотр квартир", callback_data='view_apartments')],
             [InlineKeyboardButton("📝 Регистрация", callback_data='register')],
             [InlineKeyboardButton("📋 Мои бронирования", callback_data='my_bookings')]
         ]
@@ -180,6 +183,17 @@ async def my_bookings_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
         "Попробуйте позже!"
     )
 
+async def apartments_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработчик команды /apartments"""
+    keyboard = [
+        [InlineKeyboardButton("Просмотр квартир", web_app=WebAppInfo(url=f"{WEBAPP_URL}"))],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text(
+        "Нажмите кнопку ниже, чтобы просмотреть доступные квартиры:",
+        reply_markup=reply_markup
+    )
+
 def main():
     """Запуск бота"""
     try:
@@ -192,6 +206,7 @@ def main():
         application.add_handler(CallbackQueryHandler(register_handler, pattern="^register$"))
         application.add_handler(CallbackQueryHandler(my_bookings_handler, pattern="^my_bookings$"))
         application.add_handler(MessageHandler(filters.PHOTO, handle_document_photo))
+        application.add_handler(CommandHandler("apartments", apartments_command))
         
         logger.info("Бот успешно настроен и запускается")
         # Запуск бота
