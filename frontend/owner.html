@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zamok - Панель хозяина</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            margin: 0;
+            padding: 16px;
+            background-color: var(--tg-theme-bg-color, #fff);
+            color: var(--tg-theme-text-color, #000);
+        }
+        
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        
+        .section {
+            margin-bottom: 24px;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .section-title svg {
+            margin-right: 8px;
+        }
+        
+        .card {
+            border: 1px solid var(--tg-theme-hint-color, #ccc);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            background-color: var(--tg-theme-bg-color, #fff);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .card:active {
+            transform: scale(0.98);
+        }
+        
+        .card-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        
+        .card-subtitle {
+            color: var(--tg-theme-hint-color, #666);
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+        
+        .button {
+            background-color: var(--tg-theme-button-color, #2481cc);
+            color: var(--tg-theme-button-text-color, #fff);
+            border: none;
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 12px;
+            transition: background-color 0.2s ease;
+        }
+        
+        .button:active {
+            opacity: 0.9;
+        }
+        
+        .button-secondary {
+            background-color: var(--tg-theme-secondary-bg-color, #f5f5f5);
+            color: var(--tg-theme-text-color, #000);
+        }
+        
+        .form-group {
+            margin-bottom: 16px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--tg-theme-hint-color, #666);
+            font-size: 14px;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--tg-theme-hint-color, #ccc);
+            border-radius: 8px;
+            background-color: var(--tg-theme-bg-color, #fff);
+            color: var(--tg-theme-text-color, #000);
+            font-size: 16px;
+            transition: border-color 0.2s ease;
+        }
+        
+        .form-control:focus {
+            border-color: var(--tg-theme-button-color, #2481cc);
+            outline: none;
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 16px;
+            border-bottom: 1px solid var(--tg-theme-hint-color, #ccc);
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        
+        .tabs::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .tab {
+            padding: 12px 16px;
+            cursor: pointer;
+            color: var(--tg-theme-hint-color, #666);
+            white-space: nowrap;
+            position: relative;
+            font-weight: 500;
+        }
+        
+        .tab.active {
+            color: var(--tg-theme-button-color, #2481cc);
+        }
+        
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background-color: var(--tg-theme-button-color, #2481cc);
+            animation: slideIn 0.3s ease;
+        }
+        
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .success-message {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            display: none;
+            animation: slideDown 0.3s ease;
+        }
+        
+        .error-message {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            display: none;
+            animation: slideDown 0.3s ease;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .badge-success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .badge-warning {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        
+        .badge-danger {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .loading-skeleton {
+            background: linear-gradient(90deg, var(--tg-theme-secondary-bg-color, #f0f0f0) 25%, var(--tg-theme-bg-color, #fafafa) 50%, var(--tg-theme-secondary-bg-color, #f0f0f0) 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+            border-radius: 8px;
+        }
+        
+        .skeleton-card {
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 16px;
+            padding: 16px;
+        }
+        
+        .skeleton-title {
+            height: 24px;
+            margin-bottom: 8px;
+        }
+        
+        .skeleton-text {
+            height: 16px;
+            margin-bottom: 8px;
+        }
+        
+        .skeleton-text.short {
+            width: 60%;
+        }
+        
+        .card-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        
+        .card-actions .button {
+            margin-top: 0;
+            flex: 1;
+        }
+        
+        .stat-box {
+            background-color: var(--tg-theme-secondary-bg-color, #f5f5f5);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        
+        .stat-number {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 4px;
+            color: var(--tg-theme-button-color, #2481cc);
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: var(--tg-theme-hint-color, #666);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 32px 16px;
+            color: var(--tg-theme-hint-color, #666);
+        }
+        
+        .empty-state svg {
+            opacity: 0.5;
+            margin-bottom: 16px;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideIn {
+            from { transform: scaleX(0); }
+            to { transform: scaleX(1); }
+        }
+        
+        @keyframes slideDown {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="tabs">
+            <div class="tab active" data-tab="profile">Профиль</div>
+            <div class="tab" data-tab="apartments">Квартиры</div>
+            <div class="tab" data-tab="bookings">Бронирования</div>
+            <div class="tab" data-tab="payments">Выплаты</div>
+        </div>
+        
+        <div class="success-message" id="success-message"></div>
+        <div class="error-message" id="error-message"></div>
+        
+        <!-- Профиль хозяина -->
+        <div class="tab-content active" id="profile-tab">
+            <div class="section">
+                <div class="section-title">Мой профиль</div>
+                <div id="profile-info">
+                    <!-- Здесь будет информация о профиле -->
+                </div>
+                <div id="registration-form" style="display: none;">
+                    <div class="form-group">
+                        <label>Полное имя</label>
+                        <input type="text" id="full-name" class="form-control" placeholder="Введите ваше полное имя">
+                    </div>
+                    <div class="form-group">
+                        <label>Телефон</label>
+                        <input type="tel" id="phone" class="form-control" placeholder="+7 (___) ___-__-__">
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="email" class="form-control" placeholder="email@example.com">
+                    </div>
+                    <button class="button" id="register-button">Зарегистрироваться</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Управление квартирами -->
+        <div class="tab-content" id="apartments-tab">
+            <div class="section">
+                <div class="section-title">Мои квартиры</div>
+                <div id="apartments-list">
+                    <!-- Здесь будет список квартир -->
+                </div>
+                <button class="button" id="add-apartment-button">Добавить квартиру</button>
+            </div>
+            
+            <div id="apartment-form" style="display: none;">
+                <div class="section-title">Новая квартира</div>
+                <div class="form-group">
+                    <label>Название</label>
+                    <input type="text" id="apartment-title" class="form-control" placeholder="Название квартиры">
+                </div>
+                <div class="form-group">
+                    <label>Адрес</label>
+                    <input type="text" id="apartment-address" class="form-control" placeholder="Адрес квартиры">
+                </div>
+                <div class="form-group">
+                    <label>Описание</label>
+                    <textarea id="apartment-description" class="form-control" rows="4" placeholder="Описание квартиры"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Цена за день (₽)</label>
+                    <input type="number" id="apartment-price" class="form-control" placeholder="0">
+                </div>
+                <div class="form-group">
+                    <label>ID умного замка (если есть)</label>
+                    <input type="text" id="apartment-smart-lock" class="form-control" placeholder="ID замка">
+                </div>
+                <div class="form-group">
+                    <label>URL изображения</label>
+                    <input type="text" id="apartment-image" class="form-control" placeholder="https://example.com/image.jpg">
+                </div>
+                <button class="button" id="save-apartment-button">Сохранить</button>
+                <button class="button" id="cancel-apartment-button" style="background-color: var(--tg-theme-hint-color, #ccc);">Отмена</button>
+            </div>
+        </div>
+        
+        <!-- Управление бронированиями -->
+        <div class="tab-content" id="bookings-tab">
+            <div class="section">
+                <div class="section-title">Мои бронирования</div>
+                <div id="bookings-list">
+                    <!-- Здесь будет список бронирований -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Выплаты -->
+        <div class="tab-content" id="payments-tab">
+            <div class="section">
+                <div class="section-title">Мои выплаты</div>
+                <div class="card">
+                    <div class="card-title">Настройка выплат</div>
+                    <div class="form-group">
+                        <label>Банковская карта</label>
+                        <input type="text" id="payment-card" class="form-control" placeholder="**** **** **** ****">
+                    </div>
+                    <div class="form-group">
+                        <label>Имя владельца</label>
+                        <input type="text" id="payment-name" class="form-control" placeholder="ИМЯ ФАМИЛИЯ">
+                    </div>
+                    <button class="button" id="save-payment-info">Сохранить</button>
+                </div>
+                <div class="card">
+                    <div class="card-title">История выплат</div>
+                    <div id="payment-history">
+                        <p>История выплат пока пуста</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Инициализация Telegram Mini App
+        const webapp = window.Telegram.WebApp;
+        webapp.ready();
+        
+        // Получаем данные пользователя
+        const user = webapp.initDataUnsafe.user;
+        let ownerId = null;
+        
+        // Состояние приложения
+        const appState = {
+            owner: null,
+            apartments: [],
+            bookings: [],
+            stats: {
+                apartmentsCount: 0,
+                bookingsCount: 0,
+                activeBookings: 0,
+                totalIncome: 0
+            }
+        };
+        
+        // Отображение сообщений
+        function showSuccessMessage(message) {
+            const successMessage = document.getElementById('success-message');
+            successMessage.textContent = message;
+            successMessage.style.display = 'block';
+            setTimeout(() => {
+                successMessage.style.display = 'none';
+            }, 3000);
+        }
+        
+        function showErrorMessage(message) {
+            const errorMessage = document.getElementById('error-message');
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            setTimeout(() => {
+                errorMessage.style.display = 'none';
+            }, 3000);
+        }
+        
+        // Анимация появления элементов
+        function animateElements() {
+            const elements = document.querySelectorAll('.card, .button, .form-group');
+            elements.forEach((el, index) => {
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(20px)';
+                el.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                
+                setTimeout(() => {
+                    el.style.opacity = '1';
+                    el.style.transform = 'translateY(0)';
+                }, 50 * index);
+            });
+        }
+        
+        // Переключение вкладок
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                tab.classList.add('active');
+                const tabId = tab.getAttribute('data-tab');
+                document.getElementById(`${tabId}-tab`).classList.add('active');
+                
+                // Добавляем задержку для анимации
+                setTimeout(() => {
+                    animateElements();
+                }, 100);
+            });
+        });
+        
+        // Обновление статистики
+        function updateStats() {
+            if (!appState.owner) return;
+            
+            // Считаем статистику
+            appState.stats.apartmentsCount = appState.apartments.length;
+            appState.stats.bookingsCount = appState.bookings.length;
+            appState.stats.activeBookings = appState.bookings.filter(b => b.status === 'confirmed').length;
+            appState.stats.totalIncome = appState.bookings
+                .filter(b => b.status === 'confirmed')
+                .reduce((sum, booking) => sum + booking.total_price, 0);
+            
+            // Обновляем на странице
+            document.getElementById('apartments-count').textContent = appState.stats.apartmentsCount;
+            document.getElementById('bookings-count').textContent = appState.stats.bookingsCount;
+            document.getElementById('active-bookings').textContent = appState.stats.activeBookings;
+            document.getElementById('total-income').textContent = `${appState.stats.totalIncome}₽`;
+            
+            // Показываем блок статистики
+            document.getElementById('dashboard-stats').style.display = 'block';
+        }
+        
+        // Проверка, зарегистрирован ли пользователь как хозяин
+        async function checkOwnerRegistration() {
+            try {
+                const response = await fetch(`/api/owners/${user.id}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    ownerId = data.owner.id;
+                    appState.owner = data.owner;
+                    
+                    displayOwnerProfile(data.owner);
+                    await Promise.all([
+                        loadOwnerApartments(),
+                        loadOwnerBookings()
+                    ]);
+                    
+                    updateStats();
+                } else {
+                    // Пользователь не зарегистрирован как хозяин
+                    document.getElementById('profile-info').innerHTML = `
+                        <div class="empty-state">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                            <p>Вы не зарегистрированы как хозяин. Пожалуйста, заполните форму регистрации.</p>
+                        </div>
+                    `;
+                    document.getElementById('registration-form').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Ошибка при проверке регистрации:', error);
+                document.getElementById('profile-info').innerHTML = `
+                    <div class="empty-state">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
+                        <p>Произошла ошибка при загрузке данных. Пожалуйста, попробуйте позже.</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // Отображение профиля хозяина
+        function displayOwnerProfile(owner) {
+            const profileInfo = document.getElementById('profile-info');
+            
+            const verifiedBadge = owner.is_verified ? 
+                '<span class="badge badge-success">Подтвержден</span>' : 
+                '<span class="badge badge-warning">Ожидает подтверждения</span>';
+            
+            profileInfo.innerHTML = `
+                <div class="card">
+                    <div class="card-title">${owner.full_name}</div>
+                    <div class="card-subtitle">ID: ${owner.id}</div>
+                    <p><strong>Телефон:</strong> ${owner.phone || 'Не указан'}</p>
+                    <p><strong>Email:</strong> ${owner.email || 'Не указан'}</p>
+                    <p><strong>Статус:</strong> ${verifiedBadge}</p>
+                    <p><strong>Дата регистрации:</strong> ${new Date(owner.registration_date).toLocaleDateString()}</p>
+                    <button class="button button-secondary" id="edit-profile-button">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px; vertical-align: text-top;">
+                            <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                        </svg>
+                        Редактировать профиль
+                    </button>
+                </div>
+            `;
+            
+            // Добавляем обработчик для кнопки редактирования
+            document.getElementById('edit-profile-button').addEventListener('click', () => {
+                webapp.showPopup({
+                    title: 'Функция в разработке',
+                    message: 'Редактирование профиля будет доступно в следующей версии приложения.',
+                    buttons: [{text: 'OK'}]
+                });
+            });
+        }
+        
+        // Регистрация хозяина
+        document.getElementById('register-button').addEventListener('click', async () => {
+            const fullName = document.getElementById('full-name').value;
+            const phone = document.getElementById('phone').value;
+            const email = document.getElementById('email').value;
+            
+            if (!fullName || !phone || !email) {
+                showErrorMessage('Пожалуйста, заполните все поля');
+                return;
+            }
+            
+            // Добавим визуальную обратную связь о начале процесса
+            const registerButton = document.getElementById('register-button');
+            const originalText = registerButton.textContent;
+            registerButton.textContent = 'Регистрация...';
+            registerButton.disabled = true;
+            
+            try {
+                const response = await fetch('/api/owners/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        telegram_id: user.id,
+                        username: user.username || '',
+                        full_name: fullName,
+                        phone: phone,
+                        email: email
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showSuccessMessage('Регистрация успешно завершена!');
+                    document.getElementById('registration-form').style.display = 'none';
+                    ownerId = data.owner_id;
+                    await checkOwnerRegistration();
+                } else {
+                    showErrorMessage(data.message || 'Ошибка при регистрации');
+                }
+            } catch (error) {
+                console.error('Ошибка при регистрации:', error);
+                showErrorMessage('Произошла ошибка при регистрации');
+            } finally {
+                registerButton.textContent = originalText;
+                registerButton.disabled = false;
+            }
+        });
+        
+        // Загрузка списка квартир хозяина
+        async function loadOwnerApartments() {
+            if (!ownerId) return;
+            
+            try {
+                const response = await fetch(`/api/owners/${ownerId}/apartments`);
+                if (response.ok) {
+                    const data = await response.json();
+                    appState.apartments = data.apartments || [];
+                    displayApartments(appState.apartments);
+                } else {
+                    showErrorMessage('Не удалось загрузить список квартир');
+                }
+            } catch (error) {
+                console.error('Ошибка при загрузке квартир:', error);
+                showErrorMessage('Произошла ошибка при загрузке квартир');
+            }
+        }
+        
+        // Отображение списка квартир
+        function displayApartments(apartments) {
+            const apartmentsList = document.getElementById('apartments-list');
+            
+            if (!apartments || apartments.length === 0) {
+                apartmentsList.innerHTML = `
+                    <div class="empty-state">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                        </svg>
+                        <p>У вас пока нет квартир. Добавьте свою первую квартиру!</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            for (const apartment of apartments) {
+                const statusBadge = apartment.is_available ? 
+                    '<span class="badge badge-success">Доступна</span>' : 
+                    '<span class="badge badge-danger">Недоступна</span>';
+                
+                const smartLockInfo = apartment.smart_lock_id ? 
+                    `<p><strong>Умный замок:</strong> ID ${apartment.smart_lock_id}</p>` : 
+                    `<p><strong>Умный замок:</strong> Не подключен</p>`;
+                
+                html += `
+                    <div class="card" data-id="${apartment.id}">
+                        <div class="card-title">${apartment.title}</div>
+                        <div class="card-subtitle">${apartment.address}</div>
+                        <p>${apartment.description}</p>
+                        <p><strong>Цена:</strong> ${apartment.price_per_day} ₽/день</p>
+                        <p><strong>Статус:</strong> ${statusBadge}</p>
+                        ${smartLockInfo}
+                        <div class="card-actions">
+                            <button class="button button-secondary toggle-status" data-id="${apartment.id}" data-status="${apartment.is_available}">
+                                ${apartment.is_available ? 'Отключить' : 'Включить'}
+                            </button>
+                            <button class="button edit-apartment" data-id="${apartment.id}">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px; vertical-align: text-top;">
+                                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                                </svg>
+                                Редактировать
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            apartmentsList.innerHTML = html;
+            
+            // Добавляем обработчики для кнопок
+            document.querySelectorAll('.edit-apartment').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const apartmentId = e.target.closest('button').getAttribute('data-id');
+                    // Здесь можно добавить логику редактирования квартиры
+                    webapp.showPopup({
+                        title: 'Функция в разработке',
+                        message: 'Редактирование квартир будет доступно в следующей версии приложения.',
+                        buttons: [{text: 'OK'}]
+                    });
+                });
+            });
+            
+            // Обработчики для кнопок изменения статуса
+            document.querySelectorAll('.toggle-status').forEach(button => {
+                button.addEventListener('click', async (e) => {
+                    const btn = e.target.closest('button');
+                    const apartmentId = btn.getAttribute('data-id');
+                    const currentStatus = btn.getAttribute('data-status') === 'true';
+                    
+                    // В реальном приложении здесь будет запрос к API
+                    webapp.showPopup({
+                        title: 'Изменение статуса',
+                        message: `Статус квартиры ${currentStatus ? 'отключен' : 'включен'}. Функция будет доступна в полной версии.`,
+                        buttons: [{text: 'OK'}]
+                    });
+                });
+            });
+        }
+        
+        // Обработчик для кнопки добавления квартиры
+        document.getElementById('add-apartment-button').addEventListener('click', () => {
+            document.getElementById('apartments-list').style.display = 'none';
+            document.getElementById('add-apartment-button').style.display = 'none';
+            document.getElementById('apartment-form').style.display = 'block';
+            
+            // Добавляем анимацию для формы
+            setTimeout(() => {
+                animateElements();
+            }, 100);
+        });
+        
+        // Обработчик для кнопки отмены добавления квартиры
+        document.getElementById('cancel-apartment-button').addEventListener('click', () => {
+            document.getElementById('apartments-list').style.display = 'block';
+            document.getElementById('add-apartment-button').style.display = 'block';
+            document.getElementById('apartment-form').style.display = 'none';
+            clearApartmentForm();
+        });
+        
+        // Очистка формы добавления квартиры
+        function clearApartmentForm() {
+            document.getElementById('apartment-title').value = '';
+            document.getElementById('apartment-address').value = '';
+            document.getElementById('apartment-description').value = '';
+            document.getElementById('apartment-price').value = '';
+            document.getElementById('apartment-smart-lock').value = '';
+            document.getElementById('apartment-image').value = '';
+        }
+        
+        // Сохранение новой квартиры
+        document.getElementById('save-apartment-button').addEventListener('click', async () => {
+            if (!ownerId) {
+                showErrorMessage('Необходимо зарегистрироваться как хозяин');
+                return;
+            }
+            
+            const title = document.getElementById('apartment-title').value;
+            const address = document.getElementById('apartment-address').value;
+            const description = document.getElementById('apartment-description').value;
+            const price = document.getElementById('apartment-price').value;
+            const smartLock = document.getElementById('apartment-smart-lock').value;
+            const imageUrl = document.getElementById('apartment-image').value;
+            
+            if (!title || !address || !description || !price) {
+                showErrorMessage('Пожалуйста, заполните все обязательные поля');
+                return;
+            }
+            
+            // Визуальная индикация
+            const saveButton = document.getElementById('save-apartment-button');
+            const originalText = saveButton.textContent;
+            saveButton.textContent = 'Сохранение...';
+            saveButton.disabled = true;
+            
+            try {
+                const response = await fetch('/api/owners/apartments/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        owner_id: ownerId,
+                        title: title,
+                        address: address,
+                        description: description,
+                        price_per_day: parseFloat(price),
+                        smart_lock_id: smartLock,
+                        image_url: imageUrl,
+                        is_available: true
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showSuccessMessage('Квартира успешно добавлена!');
+                    document.getElementById('apartments-list').style.display = 'block';
+                    document.getElementById('add-apartment-button').style.display = 'block';
+                    document.getElementById('apartment-form').style.display = 'none';
+                    clearApartmentForm();
+                    // Обновляем список квартир и статистику
+                    await loadOwnerApartments();
+                    updateStats();
+                } else {
+                    showErrorMessage(data.message || 'Ошибка при добавлении квартиры');
+                }
+            } catch (error) {
+                console.error('Ошибка при добавлении квартиры:', error);
+                showErrorMessage('Произошла ошибка при добавлении квартиры');
+            } finally {
+                saveButton.textContent = originalText;
+                saveButton.disabled = false;
+            }
+        });
+        
+        // Загрузка списка бронирований
+        async function loadOwnerBookings() {
+            if (!ownerId) return;
+            
+            try {
+                const response = await fetch(`/api/owners/${ownerId}/bookings`);
+                if (response.ok) {
+                    const data = await response.json();
+                    appState.bookings = data.bookings || [];
+                    displayBookings(appState.bookings);
+                } else {
+                    showErrorMessage('Не удалось загрузить список бронирований');
+                }
+            } catch (error) {
+                console.error('Ошибка при загрузке бронирований:', error);
+                showErrorMessage('Произошла ошибка при загрузке бронирований');
+            }
+        }
+        
+        // Отображение списка бронирований
+        function displayBookings(bookings) {
+            const bookingsList = document.getElementById('bookings-list');
+            
+            if (!bookings || bookings.length === 0) {
+                bookingsList.innerHTML = `
+                    <div class="empty-state">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                        <p>У вас пока нет бронирований.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Сортируем по дате - новые сверху
+            bookings.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            
+            let html = '';
+            for (const booking of bookings) {
+                const checkInDate = new Date(booking.check_in_date).toLocaleDateString();
+                const checkOutDate = new Date(booking.check_out_date).toLocaleDateString();
+                
+                let statusBadge = '';
+                if (booking.status === 'confirmed') {
+                    statusBadge = '<span class="badge badge-success">Подтверждено</span>';
+                } else if (booking.status === 'pending') {
+                    statusBadge = '<span class="badge badge-warning">Ожидает оплаты</span>';
+                } else if (booking.status === 'cancelled') {
+                    statusBadge = '<span class="badge badge-danger">Отменено</span>';
+                }
+                
+                html += `
+                    <div class="card" data-id="${booking.id}">
+                        <div class="card-title">${booking.apartment_title}</div>
+                        <div class="card-subtitle">Гость: ${booking.user_name}</div>
+                        <p><strong>Даты:</strong> ${checkInDate} - ${checkOutDate}</p>
+                        <p><strong>Статус:</strong> ${statusBadge}</p>
+                        <p><strong>Сумма:</strong> ${booking.total_price} ₽</p>
+                        <p><strong>Дата создания:</strong> ${new Date(booking.created_at).toLocaleDateString()}</p>
+                        <button class="button" id="booking-details-${booking.id}">Подробнее</button>
+                    </div>
+                `;
+            }
+            
+            bookingsList.innerHTML = html;
+            
+            // Добавляем обработчики для кнопок
+            bookings.forEach(booking => {
+                document.getElementById(`booking-details-${booking.id}`).addEventListener('click', () => {
+                    webapp.showPopup({
+                        title: 'Информация о бронировании',
+                        message: `
+                            Квартира: ${booking.apartment_title}
+                            Гость: ${booking.user_name}
+                            Даты: ${new Date(booking.check_in_date).toLocaleDateString()} - ${new Date(booking.check_out_date).toLocaleDateString()}
+                            Статус: ${booking.status}
+                            Сумма: ${booking.total_price} ₽
+                            
+                            Расширенная информация и управление бронированиями будет доступно в следующей версии.
+                        `,
+                        buttons: [{text: 'OK'}]
+                    });
+                });
+            });
+        }
+        
+        // Сохранение платежной информации
+        document.getElementById('save-payment-info').addEventListener('click', () => {
+            const card = document.getElementById('payment-card').value;
+            const name = document.getElementById('payment-name').value;
+            
+            if (!card || !name) {
+                showErrorMessage('Пожалуйста, заполните все поля');
+                return;
+            }
+            
+            // В будущем здесь будет запрос к API для сохранения платежной информации
+            showSuccessMessage('Информация сохранена');
+            webapp.showPopup({
+                title: 'Функция в разработке',
+                message: 'Настройка выплат будет доступна в следующей версии приложения.',
+                buttons: [{text: 'OK'}]
+            });
+        });
+        
+        // Инициализация приложения
+        document.addEventListener('DOMContentLoaded', () => {
+            checkOwnerRegistration();
+            
+            // Добавляем анимацию при загрузке
+            setTimeout(() => {
+                animateElements();
+            }, 200);
+        });
+        
+        // Настраиваем тему Telegram
+        webapp.setHeaderColor('secondary_bg_color');
+        webapp.expand();
+    </script>
+</body>
+</html> 

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Фон -->
+  <circle cx="100" cy="100" r="90" fill="#2481cc" />
+  
+  <!-- Замок - основание -->
+  <rect x="60" y="70" width="80" height="80" rx="10" fill="white" />
+  
+  <!-- Замок - верхняя часть -->
+  <rect x="70" y="50" width="60" height="40" rx="5" fill="white" />
+  
+  <!-- Замок - дужка -->
+  <rect x="85" y="40" width="30" height="20" rx="10" fill="white" />
+  
+  <!-- Замок - отверстие для ключа -->
+  <circle cx="100" cy="110" r="10" fill="#2481cc" />
+  
+  <!-- Лучи (для эффекта блеска) -->
+  <path d="M100 130 L100 145" stroke="white" stroke-width="4" />
+  <path d="M85 110 L70 110" stroke="white" stroke-width="4" />
+  <path d="M115 110 L130 110" stroke="white" stroke-width="4" />
+  
+  <!-- Текст -->
+  <text x="100" y="180" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="middle" fill="white">ZAMOK</text>
+</svg> 

@@ -14,11 +14,76 @@
             color: var(--tg-theme-text-color, #000);
         }
         
-        .apartment-card {
+        .header {
+            margin-bottom: 16px;
+        }
+        
+        .search-container {
+            margin-bottom: 16px;
+            position: relative;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 10px 16px;
             border: 1px solid var(--tg-theme-hint-color, #ccc);
             border-radius: 8px;
-            padding: 16px;
+            font-size: 16px;
+            background-color: var(--tg-theme-secondary-bg-color, #f5f5f5);
+            color: var(--tg-theme-text-color, #000);
+        }
+        
+        .search-icon {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            opacity: 0.5;
+        }
+        
+        .apartment-card {
+            border: 1px solid var(--tg-theme-hint-color, #ccc);
+            border-radius: 12px;
+            overflow: hidden;
             margin-bottom: 16px;
+            background-color: var(--tg-theme-bg-color, #fff);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .apartment-card:active {
+            transform: scale(0.98);
+        }
+        
+        .apartment-image-container {
+            position: relative;
+            width: 100%;
+            height: 200px;
+        }
+        
+        .apartment-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .favorite-button {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .apartment-content {
+            padding: 16px;
         }
         
         .apartment-title {
@@ -29,30 +94,192 @@
         
         .apartment-address {
             color: var(--tg-theme-hint-color, #666);
-            margin-bottom: 8px;
+            margin-bottom: 12px;
+            font-size: 14px;
         }
         
         .apartment-price {
             font-weight: bold;
             color: var(--tg-theme-button-color, #2481cc);
+            font-size: 16px;
+            margin-bottom: 12px;
         }
         
         .book-button {
             background-color: var(--tg-theme-button-color, #2481cc);
             color: var(--tg-theme-button-text-color, #fff);
             border: none;
-            border-radius: 4px;
-            padding: 8px 16px;
-            font-size: 14px;
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 16px;
+            font-weight: 500;
             cursor: pointer;
             width: 100%;
-            margin-top: 8px;
+            transition: background-color 0.2s ease;
+        }
+        
+        .book-button:active {
+            opacity: 0.9;
+        }
+
+        .date-picker {
+            margin-top: 12px;
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .date-picker.active {
+            display: block;
+        }
+
+        .date-picker input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid var(--tg-theme-hint-color, #ccc);
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        
+        .loading-skeleton {
+            background: linear-gradient(90deg, var(--tg-theme-secondary-bg-color, #f0f0f0) 25%, var(--tg-theme-bg-color, #fafafa) 50%, var(--tg-theme-secondary-bg-color, #f0f0f0) 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+            border-radius: 8px;
+        }
+        
+        .skeleton-card {
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+        
+        .skeleton-image {
+            height: 200px;
+            width: 100%;
+        }
+        
+        .skeleton-content {
+            padding: 16px;
+        }
+        
+        .skeleton-title {
+            height: 24px;
+            margin-bottom: 8px;
+        }
+        
+        .skeleton-address {
+            height: 16px;
+            width: 70%;
+            margin-bottom: 12px;
+        }
+        
+        .skeleton-price {
+            height: 20px;
+            width: 40%;
+            margin-bottom: 12px;
+        }
+        
+        .skeleton-button {
+            height: 46px;
+        }
+        
+        .filter-tabs {
+            display: flex;
+            overflow-x: auto;
+            white-space: nowrap;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            scrollbar-width: none;
+        }
+        
+        .filter-tabs::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .filter-tab {
+            padding: 8px 16px;
+            margin-right: 8px;
+            border-radius: 16px;
+            font-size: 14px;
+            background-color: var(--tg-theme-secondary-bg-color, #f5f5f5);
+            color: var(--tg-theme-text-color, #000);
+            white-space: nowrap;
+        }
+        
+        .filter-tab.active {
+            background-color: var(--tg-theme-button-color, #2481cc);
+            color: var(--tg-theme-button-text-color, #fff);
+        }
+        
+        .apartment-features {
+            display: flex;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+        
+        .apartment-feature {
+            font-size: 12px;
+            background-color: var(--tg-theme-secondary-bg-color, #f5f5f5);
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-right: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .no-results {
+            text-align: center;
+            padding: 32px 16px;
+            color: var(--tg-theme-hint-color, #666);
+        }
+        
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
 <body>
+    <div class="header">
+        <h1 style="margin: 0 0 16px 0; font-size: 24px;">Zamok</h1>
+        <div class="search-container">
+            <input type="text" class="search-input" id="search-input" placeholder="Поиск по адресу или названию...">
+        </div>
+        <div class="filter-tabs" id="filter-tabs">
+            <div class="filter-tab active" data-filter="all">Все</div>
+            <div class="filter-tab" data-filter="favorites">Избранное</div>
+            <div class="filter-tab" data-filter="price-low">Недорогие</div>
+            <div class="filter-tab" data-filter="price-high">Премиум</div>
+            <div class="filter-tab" data-filter="smart-lock">Умный замок</div>
+        </div>
+    </div>
+    
     <div id="apartments-list">
         <!-- Здесь будет список квартир -->
+        <!-- Скелетон загрузки -->
+        <div class="skeleton-card">
+            <div class="skeleton-image loading-skeleton"></div>
+            <div class="skeleton-content">
+                <div class="skeleton-title loading-skeleton"></div>
+                <div class="skeleton-address loading-skeleton"></div>
+                <div class="skeleton-price loading-skeleton"></div>
+                <div class="skeleton-button loading-skeleton"></div>
+            </div>
+        </div>
+        <div class="skeleton-card">
+            <div class="skeleton-image loading-skeleton"></div>
+            <div class="skeleton-content">
+                <div class="skeleton-title loading-skeleton"></div>
+                <div class="skeleton-address loading-skeleton"></div>
+                <div class="skeleton-price loading-skeleton"></div>
+                <div class="skeleton-button loading-skeleton"></div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -60,52 +287,278 @@
         const webapp = window.Telegram.WebApp;
         webapp.ready();
         
+        // Получаем данные пользователя
+        const user = webapp.initDataUnsafe.user;
+        
+        // Состояние приложения
+        const appState = {
+            apartments: [],
+            filteredApartments: [],
+            favorites: [],
+            currentFilter: 'all',
+            searchQuery: ''
+        };
+        
+        // Загрузка избранного из localStorage
+        const loadFavorites = () => {
+            const storedFavorites = localStorage.getItem('favorites');
+            if (storedFavorites) {
+                appState.favorites = JSON.parse(storedFavorites);
+            }
+        };
+        
+        // Сохранение избранного в localStorage
+        const saveFavorites = () => {
+            localStorage.setItem('favorites', JSON.stringify(appState.favorites));
+        };
+        
+        // Переключение избранного
+        const toggleFavorite = (apartmentId) => {
+            if (appState.favorites.includes(apartmentId)) {
+                appState.favorites = appState.favorites.filter(id => id !== apartmentId);
+            } else {
+                appState.favorites.push(apartmentId);
+            }
+            saveFavorites();
+            renderApartments();
+        };
+        
+        // Фильтрация квартир
+        const filterApartments = () => {
+            let filtered = [...appState.apartments];
+            
+            // Применяем поисковый запрос
+            if (appState.searchQuery) {
+                const query = appState.searchQuery.toLowerCase();
+                filtered = filtered.filter(apt => 
+                    apt.title.toLowerCase().includes(query) || 
+                    apt.address.toLowerCase().includes(query)
+                );
+            }
+            
+            // Применяем фильтр вкладок
+            switch (appState.currentFilter) {
+                case 'favorites':
+                    filtered = filtered.filter(apt => appState.favorites.includes(apt.id));
+                    break;
+                case 'price-low':
+                    filtered = filtered.filter(apt => apt.price_per_day <= 3000);
+                    break;
+                case 'price-high':
+                    filtered = filtered.filter(apt => apt.price_per_day > 3000);
+                    break;
+                case 'smart-lock':
+                    filtered = filtered.filter(apt => apt.has_smart_lock);
+                    break;
+            }
+            
+            appState.filteredApartments = filtered;
+        };
+        
+        // Рендеринг списка квартир
+        const renderApartments = () => {
+            filterApartments();
+            
+            const apartmentsList = document.getElementById('apartments-list');
+            apartmentsList.innerHTML = '';
+            
+            if (appState.filteredApartments.length === 0) {
+                apartmentsList.innerHTML = `
+                    <div class="no-results">
+                        <p>Не найдено квартир, соответствующих фильтрам</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            for (const apartment of appState.filteredApartments) {
+                const isFavorite = appState.favorites.includes(apartment.id);
+                const favoriteIcon = isFavorite ? 
+                    '<svg width="20" height="20" viewBox="0 0 24 24" fill="#ff5757"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>' : 
+                    '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>';
+                
+                const imgSrc = apartment.image_url || '/static/images/apartments/apartment1.jpg';
+                
+                // Определяем особенности квартиры
+                let features = [];
+                if (apartment.has_smart_lock) features.push('Умный замок');
+                if (apartment.has_wifi) features.push('Wi-Fi');
+                if (apartment.has_kitchen) features.push('Кухня');
+                if (apartment.has_parking) features.push('Парковка');
+                
+                const featuresHtml = features.length ? `
+                    <div class="apartment-features">
+                        ${features.map(feature => `<div class="apartment-feature">${feature}</div>`).join('')}
+                    </div>
+                ` : '';
+                
+                const card = document.createElement('div');
+                card.className = 'apartment-card';
+                card.setAttribute('data-id', apartment.id);
+                
+                card.innerHTML = `
+                    <div class="apartment-image-container">
+                        <img class="apartment-image" src="${imgSrc}" alt="${apartment.title}" onerror="this.src='/static/images/apartments/apartment1.jpg'">
+                        <button class="favorite-button" data-id="${apartment.id}">${favoriteIcon}</button>
+                    </div>
+                    <div class="apartment-content">
+                        <div class="apartment-title">${apartment.title}</div>
+                        <div class="apartment-address">${apartment.address}</div>
+                        ${featuresHtml}
+                        <div class="apartment-price">${apartment.price_per_day} ₽/день</div>
+                        <div class="date-picker" id="date-picker-${apartment.id}">
+                            <input type="date" id="check-in-${apartment.id}" min="${new Date().toISOString().split('T')[0]}" placeholder="Дата заезда">
+                            <input type="date" id="check-out-${apartment.id}" min="${new Date().toISOString().split('T')[0]}" placeholder="Дата выезда">
+                        </div>
+                        <button class="book-button" data-id="${apartment.id}">Забронировать</button>
+                    </div>
+                `;
+                
+                apartmentsList.appendChild(card);
+                
+                // Добавляем обработчик для кнопки избранного
+                const favoriteButton = card.querySelector('.favorite-button');
+                favoriteButton.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    toggleFavorite(apartment.id);
+                });
+                
+                // Добавляем обработчик для кнопки бронирования
+                const bookButton = card.querySelector('.book-button');
+                const datePicker = card.querySelector(`#date-picker-${apartment.id}`);
+                
+                bookButton.addEventListener('click', () => {
+                    if (datePicker.classList.contains('active')) {
+                        // Если даты выбраны, отправляем бронирование
+                        const checkIn = document.getElementById(`check-in-${apartment.id}`).value;
+                        const checkOut = document.getElementById(`check-out-${apartment.id}`).value;
+                        
+                        if (checkIn && checkOut) {
+                            bookApartment(apartment.id, checkIn, checkOut, apartment);
+                        } else {
+                            webapp.showPopup({
+                                title: 'Ошибка',
+                                message: 'Пожалуйста, выберите даты заезда и выезда',
+                                buttons: [{text: 'OK'}]
+                            });
+                        }
+                    } else {
+                        // Показываем выбор дат
+                        datePicker.classList.add('active');
+                        bookButton.textContent = 'Подтвердить бронирование';
+                    }
+                });
+            }
+        };
+        
         // Загрузка списка квартир
         async function loadApartments() {
             try {
                 const response = await fetch('/api/apartments');
+                
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
-                const apartments = await response.json();
                 
-                const apartmentsList = document.getElementById('apartments-list');
-                if (apartments.length === 0) {
-                    apartmentsList.innerHTML = '<p>Нет доступных квартир</p>';
-                    return;
+                const data = await response.json();
+                
+                const apartments = data.apartments || data;
+                
+                if (!apartments || !Array.isArray(apartments)) {
+                    console.error('Полученные данные:', data);
+                    throw new Error('Неверный формат данных с сервера');
                 }
                 
-                apartments.forEach(apartment => {
-                    const card = document.createElement('div');
-                    card.className = 'apartment-card';
-                    card.innerHTML = `
-                        <div class="apartment-title">${apartment.title}</div>
-                        <div class="apartment-address">${apartment.address}</div>
-                        <div class="apartment-price">${apartment.price_per_day} ₽/сутки</div>
-                        <button class="book-button" onclick="bookApartment(${apartment.id})">
-                            Забронировать
-                        </button>
-                    `;
-                    apartmentsList.appendChild(card);
-                });
+                // Добавляем случайные свойства для демонстрации функциональности
+                appState.apartments = apartments.map(apt => ({
+                    ...apt,
+                    has_smart_lock: Math.random() > 0.7,
+                    has_wifi: Math.random() > 0.3,
+                    has_kitchen: Math.random() > 0.2,
+                    has_parking: Math.random() > 0.6
+                }));
+                
+                renderApartments();
             } catch (error) {
-                console.error('Error loading apartments:', error);
+                console.error('Ошибка при загрузке квартир:', error);
                 const apartmentsList = document.getElementById('apartments-list');
-                apartmentsList.innerHTML = '<p>Ошибка при загрузке квартир. Пожалуйста, попробуйте позже.</p>';
+                apartmentsList.innerHTML = `<p>Ошибка при загрузке квартир: ${error.message}</p>`;
             }
         }
         
         // Функция бронирования
-        async function bookApartment(apartmentId) {
-            // Открываем основной интерфейс бота для продолжения бронирования
-            webapp.sendData(JSON.stringify({
-                action: 'book',
-                apartment_id: apartmentId
-            }));
+        async function bookApartment(apartmentId, checkIn, checkOut, apartment) {
+            try {
+                // Рассчитываем количество дней
+                const days = Math.ceil((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24));
+                const totalPrice = days * apartment.price_per_day;
+
+                // Показываем подтверждение бронирования
+                webapp.showConfirm(`Подтвердите бронирование:\n\n${apartment.title}\nЗаезд: ${checkIn}\nВыезд: ${checkOut}\nСтоимость: ${totalPrice} ₽`, async (confirmed) => {
+                    if (confirmed) {
+                        const bookingData = {
+                            user_id: user.id,
+                            apartment_id: apartmentId,
+                            check_in_date: checkIn,
+                            check_out_date: checkOut,
+                            total_price: totalPrice
+                        };
+
+                        const response = await fetch('/api/bookings/create', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(bookingData)
+                        });
+
+                        if (response.ok) {
+                            webapp.showPopup({
+                                title: 'Успех',
+                                message: 'Бронирование успешно создано!',
+                                buttons: [{text: 'OK'}]
+                            });
+                        } else {
+                            throw new Error('Ошибка при создании бронирования');
+                        }
+                    }
+                });
+            } catch (error) {
+                webapp.showPopup({
+                    title: 'Ошибка',
+                    message: error.message,
+                    buttons: [{text: 'OK'}]
+                });
+            }
         }
         
-        // Загружаем квартиры при загрузке страницы
-        loadApartments();
+        // Добавляем обработчики событий
+        document.addEventListener('DOMContentLoaded', () => {
+            loadFavorites();
+            loadApartments();
+            
+            // Обработчик поиска
+            const searchInput = document.getElementById('search-input');
+            searchInput.addEventListener('input', (e) => {
+                appState.searchQuery = e.target.value;
+                renderApartments();
+            });
+            
+            // Обработчики вкладок
+            const filterTabs = document.querySelectorAll('.filter-tab');
+            filterTabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    filterTabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    appState.currentFilter = tab.getAttribute('data-filter');
+                    renderApartments();
+                });
+            });
+        });
+
+        // Настраиваем тему Telegram
+        webapp.setHeaderColor('secondary_bg_color');
+        webapp.expand();
     </script>
 </body>
 </html> 
