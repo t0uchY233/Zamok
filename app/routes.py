@@ -135,7 +135,7 @@ def submit_quote():
         
         apartment_name = apartment_names.get(apartment_id, f"Квартира #{apartment_id}")
         
-        # Формируем данные для Google Sheets
+        # Формируем данные для записи
         booking_data = {
             'booking_id': booking_id,
             'name': f"{user_info.get('name', 'Гость')} {user_info.get('phone', '')}",
@@ -147,30 +147,41 @@ def submit_quote():
             'status': 'новое'
         }
         
-        app.logger.info(f"Подготовлены данные для записи в Google Sheets: {booking_data}")
+        app.logger.info(f"Подготовлены данные для записи в базу: {booking_data}")
         
-        # Импортируем функцию для работы с Google Sheets
-        from app.sheets_integration import add_booking_to_sheet
-        
-        # Добавляем данные в Google Sheets
-        result = add_booking_to_sheet(booking_data)
-        
-        if result:
-            app.logger.info(f"Бронирование №{booking_id} успешно создано и записано в Google Sheets")
-            return jsonify({
-                "success": True,
-                "booking_id": booking_id,
-                "message": "Бронирование успешно создано"
-            })
-        else:
-            app.logger.error("Ошибка при записи в Google Sheets")
+        try:
+            # Импортируем функцию для работы с Airtable
+            from app.airtable_integration import add_booking_to_airtable
+            
+            # Добавляем данные в Airtable
+            result = add_booking_to_airtable(booking_data)
+            
+            if result:
+                app.logger.info(f"Бронирование №{booking_id} успешно создано и сохранено в Airtable")
+                return jsonify({
+                    "success": True,
+                    "booking_id": booking_id,
+                    "message": "Бронирование успешно создано"
+                })
+            else:
+                app.logger.error("Ошибка при записи данных в Airtable")
+                return jsonify({
+                    "success": False,
+                    "error": "Ошибка при создании бронирования (проблема с сохранением данных)"
+                }), 500
+        except Exception as e:
+            app.logger.error(f"Исключение при работе с Airtable: {str(e)}")
+            import traceback
+            app.logger.error(traceback.format_exc())
             return jsonify({
                 "success": False,
-                "error": "Ошибка при создании бронирования (проблема с Google Sheets)"
+                "error": "Ошибка при создании бронирования (проблема с сохранением данных)"
             }), 500
             
     except Exception as e:
         app.logger.error(f"Ошибка при создании бронирования: {str(e)}")
+        import traceback
+        app.logger.error(traceback.format_exc())
         return jsonify({"error": str(e)}), 500
 
 @app.route('/default-apartment.jpg')
@@ -232,9 +243,6 @@ def create_booking():
         
         apartment_name = apartment_names.get(str(data['apartment_id']), 'Неизвестные апартаменты')
         
-        # Отправка данных в Google Sheets
-        from app.sheets_integration import add_booking_to_sheet
-        
         # Получаем имя пользователя из данных Telegram или используем "Пользователь Telegram"
         user_name = data.get('user_name', 'Пользователь Telegram')
         user_phone = data.get('phone', '')  # Может отсутствовать при бронировании из основной страницы
@@ -254,13 +262,16 @@ def create_booking():
         }
         
         # Логируем данные перед отправкой
-        logger.info(f"Отправляем данные в Google Sheets: {booking_data}")
+        logger.info(f"Подготовлены данные для записи в базу: {booking_data}")
         
-        # Отправляем данные в Google Sheets
-        sheets_result = add_booking_to_sheet(booking_data)
+        # Импортируем функцию для работы с Airtable
+        from app.airtable_integration import add_booking_to_airtable
         
-        if not sheets_result:
-            logger.warning("Данные не были добавлены в Google Sheets, но бронирование создано")
+        # Отправляем данные в Airtable
+        airtable_result = add_booking_to_airtable(booking_data)
+        
+        if not airtable_result:
+            logger.warning("Данные не были сохранены в Airtable, но бронирование создано")
         
         return jsonify({
             'success': True,
@@ -270,4 +281,19 @@ def create_booking():
         logger.error(f"Error processing booking: {str(e)}")
         import traceback
         logger.error(traceback.format_exc())
-        return jsonify({'success': False, 'error': str(e)}), 500 
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/test-env')
+def test_env():
+    """Тестовый маршрут для проверки переменных окружения"""
+    try:
+        env_data = {
+            "AIRTABLE_API_KEY": os.environ.get("AIRTABLE_API_KEY", "не задан")[-5:] if os.environ.get("AIRTABLE_API_KEY") else "не задан",
+            "AIRTABLE_BASE_ID": os.environ.get("AIRTABLE_BASE_ID", "не задан"),
+            "AIRTABLE_TABLE_NAME": os.environ.get("AIRTABLE_TABLE_NAME", "не задан"),
+        }
+        app.logger.info(f"Переменные окружения: {env_data}")
+        return jsonify(env_data)
+    except Exception as e:
+        app.logger.error(f"Ошибка при проверке переменных окружения: {e}")
+        return jsonify({"error": str(e)}), 500 
