@@ -2,20 +2,29 @@ from pyngrok import ngrok, conf
 import os
 from dotenv import load_dotenv
 
+# Загрузка переменных окружения
 load_dotenv()
 
 def start_ngrok():
-    try:
-        # Закрываем все существующие туннели
-        tunnels = ngrok.get_tunnels()
-        for tunnel in tunnels:
-            ngrok.disconnect(tunnel.public_url)
+    """Запуск NGROK для проксирования Flask приложения"""
+    # Получаем токен из переменных окружения или файла .env
+    auth_token = os.getenv("NGROK_AUTHTOKEN")
+    
+    if auth_token:
+        # Если токен существует, настраиваем ngrok
+        conf.get_default().auth_token = auth_token
         
-        # Запускаем NGROK на порту 5000 (порт Flask-приложения)
-        tunnel = ngrok.connect(5000, bind_tls=True)
-        public_url = tunnel.public_url
-        print(f" * NGROK туннель запущен на {public_url}")
+        # Запускаем туннель до Flask приложения (порт 5000)
+        public_url = ngrok.connect(5000).public_url
+        
+        # Выводим информацию о туннеле
+        print(f" * NGROK туннель запущен по адресу: {public_url}")
+        
         return public_url
-    except Exception as e:
-        print(f" * Ошибка при запуске NGROK: {str(e)}")
-        raise 
+    else:
+        # Если токен не существует, выводим предупреждение
+        print(" * NGROK не запущен: не указан NGROK_AUTHTOKEN в .env файле")
+        return None
+
+if __name__ == "__main__":
+    start_ngrok() 

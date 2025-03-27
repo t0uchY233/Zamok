@@ -119,30 +119,107 @@ def check_availability():
 @app.route('/api/bookings/create', methods=['POST'])
 def create_booking():
     """Создание нового бронирования"""
-    data = request.json
-    user = User.query.get_or_404(data['user_id'])
-    
-    if not user.is_verified:
-        return jsonify({
-            'status': 'error',
-            'message': 'User is not verified'
-        }), 403
-    
     try:
+        data = request.json
+        
+        # Валидация обязательных полей
+        required_fields = ['user_id', 'apartment_id', 'check_in_date', 'check_out_date', 'total_price']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({
+                    'status': 'error',
+                    'message': f'Missing required field: {field}'
+                }), 400
+        
+        # Проверка пользователя
+        user = User.query.get(data['user_id'])
+        if not user:
+            return jsonify({
+                'status': 'error',
+                'message': 'User not found'
+            }), 404
+        
+        if not user.is_verified:
+            return jsonify({
+                'status': 'error',
+                'message': 'User is not verified. Please complete verification process.'
+            }), 403
+        
+        # Проверка квартиры
+        apartment = Apartment.query.get(data['apartment_id'])
+        if not apartment:
+            return jsonify({
+                'status': 'error',
+                'message': 'Apartment not found'
+            }), 404
+            
+        if not apartment.is_available:
+            return jsonify({
+                'status': 'error',
+                'message': 'Apartment is not available for booking'
+            }), 400
+        
+        # Проверяем корректность дат
+        try:
+            check_in = datetime.fromisoformat(data['check_in_date'])
+            check_out = datetime.fromisoformat(data['check_out_date'])
+        except ValueError:
+            return jsonify({
+                'status': 'error',
+                'message': 'Invalid date format. Use ISO format (YYYY-MM-DDTHH:MM:SS)'
+            }), 400
+            
+        if check_in >= check_out:
+            return jsonify({
+                'status': 'error',
+                'message': 'Check-out date must be after check-in date'
+            }), 400
+            
+        if check_in < datetime.now():
+            return jsonify({
+                'status': 'error',
+                'message': 'Check-in date cannot be in the past'
+            }), 400
+        
+        # Проверка доступности дат
+        conflicting_bookings = Booking.query.filter(
+            Booking.apartment_id == data['apartment_id'],
+            Booking.status != 'cancelled',
+            Booking.check_in_date < check_out,
+            Booking.check_out_date > check_in
+        ).all()
+        
+        if conflicting_bookings:
+            return jsonify({
+                'status': 'error',
+                'message': 'Apartment is not available for selected dates'
+            }), 400
+        
+        # Проверка корректности стоимости
+        days = (check_out - check_in).days
+        expected_price = days * apartment.price_per_day
+        
+        if abs(float(data['total_price']) - expected_price) > 0.01:  # Допустимая погрешность
+            return jsonify({
+                'status': 'error',
+                'message': f'Price calculation mismatch. Expected: {expected_price}'
+            }), 400
+        
         # Создаем бронирование
         booking = Booking(
             user_id=data['user_id'],
             apartment_id=data['apartment_id'],
-            check_in_date=datetime.fromisoformat(data['check_in_date']),
-            check_out_date=datetime.fromisoformat(data['check_out_date']),
-            total_price=data['total_price']
+            check_in_date=check_in,
+            check_out_date=check_out,
+            total_price=data['total_price'],
+            # Генерируем уникальный код доступа для умного замка
+            access_code=''.join(random.choices(string.digits, k=6))
         )
         
         db.session.add(booking)
         db.session.commit()
         
         # Обновляем Google Sheet
-        apartment = Apartment.query.get(data['apartment_id'])
         booking_data = {
             'booking_id': booking.id,
             'user_name': user.full_name,
@@ -152,19 +229,26 @@ def create_booking():
             'total_price': data['total_price'],
             'status': 'pending'
         }
-        update_google_sheet(booking_data)
+        
+        try:
+            update_google_sheet(booking_data)
+        except Exception as sheet_error:
+            app.logger.error(f"Ошибка при обновлении Google Sheet: {str(sheet_error)}")
+            # Не отменяем бронирование при ошибке с Google Sheet
         
         return jsonify({
             'status': 'success',
             'booking_id': booking.id,
+            'access_code': booking.access_code,
             'message': 'Booking created successfully'
         })
         
     except Exception as e:
         db.session.rollback()
+        app.logger.error(f"Ошибка при создании бронирования: {str(e)}")
         return jsonify({
             'status': 'error',
-            'message': str(e)
+            'message': f'Server error: {str(e)}'
         }), 500
 
 @app.route('/api/bookings/<int:booking_id>/cancel', methods=['POST'])

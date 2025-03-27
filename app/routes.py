@@ -1,305 +1,273 @@
-from flask import jsonify, request, render_template, send_from_directory
-from app import app, db
-from app.database import User, Apartment, Booking, Payment, Owner
-from datetime import datetime
-import random
-import string
 import os
+import json
+import logging
+from datetime import datetime
+from flask import render_template, request, jsonify, send_from_directory
+from flask_cors import CORS
+from app import app
+import random
+
+# Включаем CORS
+CORS(app)
+
+# Настройка логирования
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Тестовые данные
+APARTMENTS = [
+    {
+        "id": 1,
+        "title": "Уютная квартира в центре",
+        "address": "ул. Ленина, 10",
+        "price_per_day": 2500,
+        "image_url": "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?ixlib=rb-4.0.3",  # Используем реальное изображение
+        "description": "Светлая квартира с современным ремонтом",
+        "has_wifi": True,
+        "has_kitchen": True,
+        "has_parking": False,
+        "has_smart_lock": True
+    }
+]
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    """Главная страница"""
+    return app.send_static_file('index.html')
 
-@app.route('/apartments')
-def apartments_page():
-    return render_template('index.html')
+@app.route('/static/<path:filename>')
+def serve_static(filename):
+    """Обработка статических файлов"""
+    return send_from_directory(app.static_folder, filename)
 
-@app.route('/owner')
-def owner_page():
-    return send_from_directory(os.path.join(app.root_path, '..', 'frontend'), 'owner.html')
+@app.route('/get-quote')
+def get_quote():
+    """Страница для расчета и оформления бронирования"""
+    # Вместо рендеринга шаблона, будем использовать статический HTML файл
+    # Так он будет использовать интеграцию с Telegram Mini App как в index.html
+    return app.send_static_file('get_quote.html')
+
+@app.route('/api/calculate-price', methods=['POST'])
+def calculate_price():
+    """API для расчета стоимости бронирования"""
+    try:
+        data = request.json
+        logger.info(f"Received price calculation request: {data}")
+        
+        apartment_id = data.get('apartment_id')
+        check_in_date = datetime.strptime(data.get('check_in_date'), '%Y-%m-%d')
+        check_out_date = datetime.strptime(data.get('check_out_date'), '%Y-%m-%d')
+        
+        # Находим нужную квартиру из тестовых данных
+        apartments = {
+            '1': {'price_per_day': 2500},
+            '2': {'price_per_day': 3500},
+            '3': {'price_per_day': 5000}
+        }
+        
+        apartment = apartments.get(apartment_id)
+        
+        if not apartment:
+            return jsonify({'error': 'Apartment not found'}), 404
+        
+        # Рассчитываем количество дней
+        num_days = (check_out_date - check_in_date).days
+        
+        if num_days <= 0:
+            return jsonify({'error': 'Check-out date must be after check-in date'}), 400
+        
+        # Рассчитываем стоимость
+        price_per_day = apartment['price_per_day']
+        total_price = price_per_day * num_days
+        
+        return jsonify({
+            'apartment_id': apartment_id,
+            'check_in_date': check_in_date.strftime('%Y-%m-%d'),
+            'check_out_date': check_out_date.strftime('%Y-%m-%d'),
+            'num_days': num_days,
+            'price_per_day': price_per_day,
+            'total_price': total_price
+        })
+    except Exception as e:
+        logger.error(f"Error calculating price: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/submit-quote', methods=['POST'])
+def submit_quote():
+    try:
+        # Получаем данные из запроса
+        data = request.json
+        app.logger.info(f"Получены данные бронирования: {data}")
+        
+        if not data:
+            return jsonify({"error": "Данные не получены"}), 400
+        
+        # Проверяем наличие необходимых полей
+        required_fields = ['apartment_id', 'dates', 'total_price', 'user_info']
+        for field in required_fields:
+            if field not in data:
+                app.logger.error(f"Отсутствует обязательное поле: {field}")
+                return jsonify({"error": f"Отсутствует обязательное поле: {field}"}), 400
+        
+        # Извлекаем данные
+        apartment_id = data.get('apartment_id')
+        dates = data.get('dates', {})
+        user_info = data.get('user_info', {})
+        total_price = data.get('total_price')
+        
+        # Проверяем даты
+        if 'check_in_date' not in dates or 'check_out_date' not in dates:
+            app.logger.error("Отсутствуют даты заезда/выезда")
+            return jsonify({"error": "Отсутствуют даты заезда/выезда"}), 400
+        
+        app.logger.info(f"Даты бронирования: {dates}")
+        app.logger.info(f"Общая стоимость: {total_price}")
+        
+        # Генерируем уникальный ID бронирования
+        booking_id = random.randint(10000, 99999)
+        
+        # Преобразуем ID апартаментов в название
+        apartment_names = {
+            1: "Квартира на Ленина",
+            2: "Квартира на Гагарина",
+            3: "Квартира в центре"
+        }
+        
+        apartment_name = apartment_names.get(apartment_id, f"Квартира #{apartment_id}")
+        
+        # Формируем данные для Google Sheets
+        booking_data = {
+            'booking_id': booking_id,
+            'name': f"{user_info.get('name', 'Гость')} {user_info.get('phone', '')}",
+            'apartment_id': apartment_id,
+            'apartment_name': apartment_name,
+            'check_in_date': dates.get('check_in_date'),
+            'check_out_date': dates.get('check_out_date'),
+            'total_price': total_price,
+            'status': 'новое'
+        }
+        
+        app.logger.info(f"Подготовлены данные для записи в Google Sheets: {booking_data}")
+        
+        # Импортируем функцию для работы с Google Sheets
+        from app.sheets_integration import add_booking_to_sheet
+        
+        # Добавляем данные в Google Sheets
+        result = add_booking_to_sheet(booking_data)
+        
+        if result:
+            app.logger.info(f"Бронирование №{booking_id} успешно создано и записано в Google Sheets")
+            return jsonify({
+                "success": True,
+                "booking_id": booking_id,
+                "message": "Бронирование успешно создано"
+            })
+        else:
+            app.logger.error("Ошибка при записи в Google Sheets")
+            return jsonify({
+                "success": False,
+                "error": "Ошибка при создании бронирования (проблема с Google Sheets)"
+            }), 500
+            
+    except Exception as e:
+        app.logger.error(f"Ошибка при создании бронирования: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/default-apartment.jpg')
 def default_apartment():
-    try:
-        return send_from_directory(os.path.join(app.root_path, '..', 'frontend', 'static', 'images'), 'default-apartment.jpg')
-    except Exception as e:
-        app.logger.error(f"Error serving default image: {str(e)}")
-        return "Image not found", 404
-
-@app.route('/favicon.ico')
-def favicon():
-    # Исправляем путь к favicon.ico
-    favicon_path = os.path.join(app.root_path, '..', 'frontend')
-    app.logger.info(f"Путь к favicon: {favicon_path}")
-    app.logger.info(f"Файл существует: {os.path.exists(os.path.join(favicon_path, 'favicon.ico'))}")
-    
-    return send_from_directory(favicon_path, 'favicon.ico', mimetype='image/vnd.microsoft.icon')
-
-@app.route('/api/health', methods=['GET'])
-def health_check():
-    return jsonify({'status': 'ok', 'timestamp': datetime.utcnow()})
+    return app.send_static_file('images/default-apartment.jpg')
 
 @app.route('/api/apartments', methods=['GET'])
 def get_apartments():
+    """API для получения списка доступных квартир"""
     try:
-        apartments = Apartment.query.filter_by(is_available=True).all()
-        apartments_list = []
-        
-        app.logger.info(f"Найдено квартир: {len(apartments)}")
-        
-        for apt in apartments:
-            apartment_data = {
-                'id': apt.id,
-                'title': apt.title,
-                'address': apt.address,
-                'description': apt.description,
-                'price_per_day': apt.price_per_day,
-                'image_url': apt.image_url
-            }
-            apartments_list.append(apartment_data)
-            app.logger.info(f"Добавлена квартира: {apartment_data}")
-        
-        app.logger.info(f"Отправляем ответ: {apartments_list}")
-        return jsonify(apartments_list)
+        logger.info("Получен запрос на список квартир")
+        return jsonify(APARTMENTS)
     except Exception as e:
-        app.logger.error(f"Ошибка в get_apartments: {str(e)}")
-        app.logger.error(f"Тип ошибки: {type(e)}")
+        logger.error(f"Error getting apartments: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-# Маршруты для хозяев
-@app.route('/api/owners/register', methods=['POST'])
-def register_owner():
-    """Регистрация нового хозяина"""
+@app.route('/favicon.ico')
+def favicon():
+    return app.send_static_file('images/favicon.ico')
+
+@app.route('/api/bookings/create', methods=['POST'])
+def create_booking():
+    """API для создания нового бронирования"""
     try:
         data = request.json
+        logger.info(f"Received booking creation request: {data}")
         
-        # Проверяем, существует ли уже хозяин с таким telegram_id
-        existing_owner = Owner.query.filter_by(telegram_id=data['telegram_id']).first()
-        if existing_owner:
-            return jsonify({
-                'status': 'error',
-                'message': 'Owner with this Telegram ID already exists'
-            }), 400
+        # Проверяем, что данные вообще пришли
+        if not data:
+            logger.error("No JSON data received")
+            return jsonify({'success': False, 'error': 'Нет данных для бронирования'}), 400
         
-        # Создаем нового хозяина
-        owner = Owner(
-            telegram_id=data['telegram_id'],
-            username=data.get('username', ''),
-            full_name=data.get('full_name', ''),
-            phone=data.get('phone', ''),
-            email=data.get('email', ''),
-            is_verified=False
-        )
+        # Проверяем наличие всех необходимых полей и логируем каждое поле
+        required_fields = ['apartment_id', 'check_in_date', 'check_out_date', 'total_price']
+        missing_fields = []
         
-        db.session.add(owner)
-        db.session.commit()
+        # Подробное логирование каждого поля
+        for field in required_fields:
+            field_value = data.get(field)
+            logger.info(f"Field {field}: {field_value}")
+            
+            if field not in data or not data[field]:
+                missing_fields.append(field)
         
-        return jsonify({
-            'status': 'success',
-            'owner_id': owner.id,
-            'message': 'Owner registered successfully'
-        })
-    
-    except Exception as e:
-        db.session.rollback()
-        app.logger.error(f"Ошибка при регистрации хозяина: {str(e)}")
-        return jsonify({
-            'status': 'error',
-            'message': str(e)
-        }), 500
-
-@app.route('/api/owners/<int:telegram_id>', methods=['GET'])
-def get_owner(telegram_id):
-    """Получение информации о хозяине по telegram_id"""
-    owner = Owner.query.filter_by(telegram_id=telegram_id).first()
-    
-    if not owner:
-        return jsonify({
-            'status': 'error',
-            'message': 'Owner not found'
-        }), 404
-    
-    return jsonify({
-        'status': 'success',
-        'owner': {
-            'id': owner.id,
-            'telegram_id': owner.telegram_id,
-            'username': owner.username,
-            'full_name': owner.full_name,
-            'phone': owner.phone,
-            'email': owner.email,
-            'is_verified': owner.is_verified,
-            'registration_date': owner.registration_date.isoformat()
+        if missing_fields:
+            error_msg = f'Отсутствуют обязательные поля: {", ".join(missing_fields)}'
+            logger.error(error_msg)
+            return jsonify({'success': False, 'error': error_msg}), 400
+        
+        # Генерируем ID бронирования
+        booking_id = 12345  # В реальной БД будет автоинкремент
+        
+        # Поиск названия апартаментов по ID
+        apartment_names = {
+            '1': 'Уютная студия в центре',
+            '2': 'Апартаменты с видом',
+            '3': 'Люкс-апартаменты'
         }
-    })
-
-@app.route('/api/owners/<int:owner_id>/apartments', methods=['GET'])
-def get_owner_apartments(owner_id):
-    """Получение списка квартир хозяина"""
-    owner = Owner.query.get_or_404(owner_id)
-    
-    apartments = []
-    for apt in owner.apartments:
-        apartments.append({
-            'id': apt.id,
-            'title': apt.title,
-            'address': apt.address,
-            'description': apt.description,
-            'price_per_day': apt.price_per_day,
-            'is_available': apt.is_available,
-            'image_url': apt.image_url
-        })
-    
-    return jsonify({
-        'status': 'success',
-        'apartments': apartments
-    })
-
-@app.route('/api/owners/apartments/create', methods=['POST'])
-def create_apartment():
-    """Создание новой квартиры хозяином"""
-    try:
-        data = request.json
         
-        # Проверяем, существует ли хозяин
-        owner = Owner.query.get_or_404(data['owner_id'])
+        apartment_name = apartment_names.get(str(data['apartment_id']), 'Неизвестные апартаменты')
         
-        # Создаем новую квартиру
-        apartment = Apartment(
-            title=data['title'],
-            address=data['address'],
-            description=data['description'],
-            price_per_day=data['price_per_day'],
-            is_available=data.get('is_available', True),
-            smart_lock_id=data.get('smart_lock_id', ''),
-            image_url=data.get('image_url', ''),
-            owner_id=owner.id
-        )
+        # Отправка данных в Google Sheets
+        from app.sheets_integration import add_booking_to_sheet
         
-        db.session.add(apartment)
-        db.session.commit()
+        # Получаем имя пользователя из данных Telegram или используем "Пользователь Telegram"
+        user_name = data.get('user_name', 'Пользователь Telegram')
+        user_phone = data.get('phone', '')  # Может отсутствовать при бронировании из основной страницы
+        
+        # Собираем полный набор данных для записи
+        booking_data = {
+            'booking_id': booking_id,
+            'name': user_name,
+            'phone': user_phone,
+            'email': data.get('email', ''),
+            'apartment_id': data['apartment_id'],
+            'apartment_name': apartment_name,
+            'check_in_date': data['check_in_date'],
+            'check_out_date': data['check_out_date'],
+            'total_price': data['total_price'],
+            'status': 'pending'
+        }
+        
+        # Логируем данные перед отправкой
+        logger.info(f"Отправляем данные в Google Sheets: {booking_data}")
+        
+        # Отправляем данные в Google Sheets
+        sheets_result = add_booking_to_sheet(booking_data)
+        
+        if not sheets_result:
+            logger.warning("Данные не были добавлены в Google Sheets, но бронирование создано")
         
         return jsonify({
-            'status': 'success',
-            'apartment_id': apartment.id,
-            'message': 'Apartment created successfully'
+            'success': True,
+            'booking_id': booking_id
         })
-    
     except Exception as e:
-        db.session.rollback()
-        app.logger.error(f"Ошибка при создании квартиры: {str(e)}")
-        return jsonify({
-            'status': 'error',
-            'message': str(e)
-        }), 500
-
-@app.route('/api/owners/apartments/<int:apartment_id>', methods=['PUT'])
-def update_apartment(apartment_id):
-    """Обновление информации о квартире"""
-    try:
-        apartment = Apartment.query.get_or_404(apartment_id)
-        data = request.json
-        
-        # Проверяем, принадлежит ли квартира хозяину
-        if data.get('owner_id') and apartment.owner_id != data['owner_id']:
-            return jsonify({
-                'status': 'error',
-                'message': 'You do not have permission to update this apartment'
-            }), 403
-        
-        # Обновляем данные квартиры
-        if 'title' in data:
-            apartment.title = data['title']
-        if 'address' in data:
-            apartment.address = data['address']
-        if 'description' in data:
-            apartment.description = data['description']
-        if 'price_per_day' in data:
-            apartment.price_per_day = data['price_per_day']
-        if 'is_available' in data:
-            apartment.is_available = data['is_available']
-        if 'smart_lock_id' in data:
-            apartment.smart_lock_id = data['smart_lock_id']
-        if 'image_url' in data:
-            apartment.image_url = data['image_url']
-        
-        db.session.commit()
-        
-        return jsonify({
-            'status': 'success',
-            'message': 'Apartment updated successfully'
-        })
-    
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({
-            'status': 'error',
-            'message': str(e)
-        }), 500
-
-@app.route('/api/owners/<int:owner_id>/bookings', methods=['GET'])
-def get_owner_bookings(owner_id):
-    """Получение списка бронирований для квартир хозяина"""
-    owner = Owner.query.get_or_404(owner_id)
-    
-    # Получаем все квартиры хозяина
-    apartments = owner.apartments
-    
-    # Собираем все бронирования для этих квартир
-    bookings = []
-    for apt in apartments:
-        for booking in apt.bookings:
-            user = User.query.get(booking.user_id)
-            bookings.append({
-                'id': booking.id,
-                'apartment_title': apt.title,
-                'user_name': user.full_name,
-                'check_in_date': booking.check_in_date.isoformat(),
-                'check_out_date': booking.check_out_date.isoformat(),
-                'total_price': booking.total_price,
-                'status': booking.status,
-                'is_paid': booking.is_paid,
-                'created_at': booking.created_at.isoformat()
-            })
-    
-    return jsonify({
-        'status': 'success',
-        'bookings': bookings
-    })
-
-@app.route('/api/access-code/<int:booking_id>', methods=['POST'])
-def generate_access_code(booking_id):
-    booking = Booking.query.get_or_404(booking_id)
-    if not booking.is_paid:
-        return jsonify({'status': 'error', 'message': 'Booking is not paid'}), 400
-    
-    # Генерация 6-значного кода
-    access_code = ''.join(random.choices(string.digits, k=6))
-    booking.access_code = access_code
-    db.session.commit()
-    
-    return jsonify({
-        'status': 'success',
-        'access_code': access_code,
-        'valid_until': booking.check_out_date
-    })
-
-@app.route('/api/verify-payment', methods=['POST'])
-def verify_payment():
-    data = request.json
-    booking = Booking.query.get_or_404(data['booking_id'])
-    
-    payment = Payment(
-        booking_id=booking.id,
-        amount=data['amount'],
-        payment_method=data['payment_method'],
-        transaction_id=data['transaction_id']
-    )
-    
-    booking.is_paid = True
-    booking.status = 'confirmed'
-    
-    db.session.add(payment)
-    db.session.commit()
-    
-    return jsonify({'status': 'success', 'message': 'Payment verified'}) 
+        logger.error(f"Error processing booking: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return jsonify({'success': False, 'error': str(e)}), 500 

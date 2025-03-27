@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Расчет стоимости | Замок</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        .mt-2 {
+            margin-top: 16px;
+        }
+        .message {
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            display: none;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top-color: #2481cc;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Расчет стоимости бронирования</h1>
+        
+        <div class="card">
+            <h2 class="card-title">Заполните информацию для расчета</h2>
+            <p class="card-subtitle">Мы подберем для вас лучший вариант</p>
+            
+            <div class="form-group">
+                <label for="apartment">Выберите квартиру</label>
+                <select id="apartment" class="form-control">
+                    <option value="">Выберите квартиру...</option>
+                    <option value="1">Стандартные апартаменты</option>
+                    <option value="2">Апартаменты с видом</option>
+                    <option value="3">Люкс апартаменты</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="check-in-date">Дата заезда</label>
+                <input type="date" id="check-in-date" class="form-control">
+            </div>
+            
+            <div class="form-group">
+                <label for="check-out-date">Дата выезда</label>
+                <input type="date" id="check-out-date" class="form-control">
+            </div>
+            
+            <div class="form-group">
+                <label for="adults">Количество взрослых</label>
+                <input type="number" id="adults" class="form-control" min="1" value="1">
+            </div>
+            
+            <div class="form-group">
+                <label>Наличие детей</label>
+                <div>
+                    <input type="radio" id="children-yes" name="children" value="yes">
+                    <label for="children-yes">Да</label>
+                    <input type="radio" id="children-no" name="children" value="no" checked>
+                    <label for="children-no">Нет</label>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Наличие животных</label>
+                <div>
+                    <input type="radio" id="pets-yes" name="pets" value="yes">
+                    <label for="pets-yes">Да</label>
+                    <input type="radio" id="pets-no" name="pets" value="no" checked>
+                    <label for="pets-no">Нет</label>
+                </div>
+            </div>
+            
+            <button onclick="calculatePrice()" class="button mt-2">Рассчитать стоимость</button>
+        </div>
+        
+        <div id="quote-result" class="card" style="display: none;">
+            <h2 class="card-title">Расчет стоимости</h2>
+            <div id="quote-details"></div>
+            
+            <h3 class="mt-2">Информация для бронирования</h3>
+            <div class="form-group">
+                <label for="user-name">Ваше имя*</label>
+                <input type="text" id="user-name" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="user-phone">Телефон*</label>
+                <input type="tel" id="user-phone" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="user-email">Email</label>
+                <input type="email" id="user-email" class="form-control">
+            </div>
+            
+            <button onclick="submitQuote()" class="button mt-2">Забронировать</button>
+            <div id="booking-status" class="message"></div>
+        </div>
+    </div>
+
+    <script>
+        // Добавляем глобальный обработчик ошибок для отладки
+        window.onerror = function(message, source, lineno, colno, error) {
+            console.error('Глобальная ошибка:', {
+                message,
+                source,
+                lineno,
+                colno,
+                error: error ? error.stack : 'нет стека'
+            });
+            return false;
+        };
+        
+        // Глобальные переменные
+        let calculatedData = {};
+        const prices = {
+            '1': 5000, // Стандартные апартаменты
+            '2': 7000, // Апартаменты с видом
+            '3': 10000 // Люкс апартаменты
+        };
+        
+        // Инициализация Telegram Mini App
+        const webapp = window.Telegram.WebApp;
+        webapp.ready();
+        
+        // Получаем данные пользователя из Telegram
+        const telegramUser = webapp.initDataUnsafe?.user;
+        console.log("Telegram user data:", telegramUser);
+
+        // Инициализация дат
+        window.onload = function() {
+            console.log("Страница загружена");
+            
+            // Получаем параметры из URL
+            const params = new URLSearchParams(window.location.search);
+            const apartmentId = params.get('apartment_id');
+            const checkIn = params.get('check_in');
+            const checkOut = params.get('check_out');
+            
+            console.log("Параметры URL:", { apartmentId, checkIn, checkOut });
+            
+            // Устанавливаем значения по умолчанию для дат
+            const today = new Date();
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            
+            // Заполняем форму данными из URL, если они есть
+            if (apartmentId) {
+                const apartmentSelect = document.getElementById('apartment');
+                if (apartmentSelect) apartmentSelect.value = apartmentId;
+            }
+            
+            // Устанавливаем даты, приоритетно из URL параметров
+            const checkInDateEl = document.getElementById('check-in-date');
+            if (checkInDateEl) {
+                if (checkIn) {
+                    checkInDateEl.value = checkIn;
+                } else {
+                    checkInDateEl.valueAsDate = today;
+                }
+            }
+            
+            const checkOutDateEl = document.getElementById('check-out-date');
+            if (checkOutDateEl) {
+                if (checkOut) {
+                    checkOutDateEl.value = checkOut;
+                } else {
+                    checkOutDateEl.valueAsDate = tomorrow;
+                }
+            }
+            
+            // Если есть данные пользователя в Telegram, заполняем поле имени
+            if (telegramUser) {
+                const nameInput = document.getElementById('user-name');
+                if (nameInput) {
+                    // Имя пользователя может быть в first_name, first_name + last_name или username
+                    if (telegramUser.first_name) {
+                        const fullName = telegramUser.last_name 
+                            ? `${telegramUser.first_name} ${telegramUser.last_name}` 
+                            : telegramUser.first_name;
+                        nameInput.value = fullName;
+                    } else if (telegramUser.username) {
+                        nameInput.value = telegramUser.username;
+                    }
+                }
+            }
+            
+            // Если все параметры для расчета есть, автоматически рассчитываем стоимость
+            if (apartmentId && checkIn && checkOut) {
+                calculatePrice();
+            }
+        };
+
+        // Функция для расчета дней между датами
+        function getDays(startDate, endDate) {
+            console.log("Расчет дней между", startDate, "и", endDate);
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            start.setHours(0, 0, 0, 0);
+            end.setHours(0, 0, 0, 0);
+            const diff = end.getTime() - start.getTime();
+            return Math.ceil(diff / (1000 * 60 * 60 * 24));
+        }
+
+        // Функция для расчета стоимости
+        function calculatePrice() {
+            console.log("Функция calculatePrice() вызвана");
+            
+            // Получаем данные из формы
+            const apartmentSelect = document.getElementById('apartment');
+            const apartment_id = apartmentSelect.value;
+            
+            if (!apartment_id) {
+                alert('Пожалуйста, выберите квартиру');
+                return;
+            }
+            
+            const apartment_name = apartmentSelect.options[apartmentSelect.selectedIndex].text;
+            const check_in_date = document.getElementById('check-in-date').value;
+            const check_out_date = document.getElementById('check-out-date').value;
+            const adults = document.getElementById('adults').value;
+            const has_children = document.querySelector('input[name="children"]:checked').value;
+            const has_pets = document.querySelector('input[name="pets"]:checked').value;
+            
+            console.log("Данные формы:", {
+                apartment_id, 
+                apartment_name, 
+                check_in_date, 
+                check_out_date, 
+                adults, 
+                has_children, 
+                has_pets
+            });
+            
+            // Проверяем корректность дат
+            if (!check_in_date || !check_out_date) {
+                alert('Пожалуйста, выберите даты заезда и выезда');
+                return;
+            }
+            
+            if (new Date(check_in_date) >= new Date(check_out_date)) {
+                alert('Дата выезда должна быть позже даты заезда');
+                return;
+            }
+            
+            // Рассчитываем стоимость
+            const days = getDays(check_in_date, check_out_date);
+            const price_per_day = prices[apartment_id];
+            const total_price = days * price_per_day;
+            
+            console.log("Расчет стоимости:", {days, price_per_day, total_price});
+            
+            // Отображаем результат
+            document.getElementById('quote-result').style.display = 'block';
+            document.getElementById('quote-details').innerHTML = `
+                <p>Квартира: <strong>${apartment_name}</strong></p>
+                <p>Даты: <strong>${check_in_date} - ${check_out_date}</strong></p>
+                <p>Количество ночей: <strong>${days}</strong></p>
+                <p>Стоимость за ночь: <strong>${price_per_day} ₽</strong></p>
+                <p>Итого: <strong>${total_price} ₽</strong></p>
+            `;
+            
+            // Сохраняем данные
+            calculatedData = {
+                apartment_id,
+                apartment_name,
+                check_in_date,
+                check_out_date,
+                adults,
+                has_children,
+                has_pets,
+                price_per_day,
+                total_price,
+                days
+            };
+            
+            // Предзаполняем поля формы бронирования, если у нас есть данные из Telegram
+            prefillBookingForm();
+            
+            console.log("Расчет выполнен, данные сохранены:", calculatedData);
+        }
+        
+        // Функция для предзаполнения формы бронирования данными из Telegram
+        function prefillBookingForm() {
+            const nameInput = document.getElementById('user-name');
+            
+            if (nameInput && !nameInput.value && telegramUser) {
+                // Заполнение имени из данных Telegram
+                if (telegramUser.first_name) {
+                    const fullName = telegramUser.last_name 
+                        ? `${telegramUser.first_name} ${telegramUser.last_name}` 
+                        : telegramUser.first_name;
+                    nameInput.value = fullName;
+                } else if (telegramUser.username) {
+                    nameInput.value = telegramUser.username;
+                }
+            }
+            
+            // Здесь можно добавить заполнение других полей, если они доступны в Telegram
+            console.log("Форма бронирования предзаполнена");
+        }
+
+        // Функция для отправки данных
+        function submitQuote() {
+            console.log("Функция submitQuote() вызвана");
+            
+            try {
+                // Проверяем, что расчет был сделан
+                if (!calculatedData.apartment_id) {
+                    alert('Сначала выполните расчет стоимости');
+                    return;
+                }
+                
+                // Получаем данные пользователя и проверяем их наличие
+                const nameInput = document.getElementById('user-name');
+                const phoneInput = document.getElementById('user-phone');
+                const emailInput = document.getElementById('user-email');
+                
+                console.log("Элементы формы:", {
+                    nameInput: nameInput ? nameInput.id : 'не найден',
+                    phoneInput: phoneInput ? phoneInput.id : 'не найден',
+                    emailInput: emailInput ? emailInput.id : 'не найден'
+                });
+                
+                const name = nameInput ? nameInput.value : '';
+                const phone = phoneInput ? phoneInput.value : '';
+                const email = emailInput ? emailInput.value : '';
+                
+                console.log("Данные пользователя:", { name, phone, email });
+                
+                // Проверяем обязательные поля
+                if (!name || !phone) {
+                    alert('Пожалуйста, заполните имя и телефон');
+                    return;
+                }
+                
+                // Показываем индикатор загрузки
+                const bookingStatus = document.getElementById('booking-status');
+                bookingStatus.innerHTML = '<div class="spinner"></div> Отправка данных...';
+                bookingStatus.className = 'message';
+                bookingStatus.style.display = 'block';
+                
+                // Формируем данные для отправки в соответствии с ожиданиями сервера
+                const requestData = {
+                    name: name,
+                    phone: phone,
+                    email: email,
+                    apartment_id: calculatedData.apartment_id,
+                    check_in_date: calculatedData.check_in_date,
+                    check_out_date: calculatedData.check_out_date,
+                    total_price: calculatedData.total_price
+                };
+                
+                console.log("Отправляем данные:", JSON.stringify(requestData));
+                
+                // Проверяем еще раз наличие всех необходимых полей
+                const requiredFields = ['name', 'phone', 'apartment_id', 'check_in_date', 'check_out_date', 'total_price'];
+                const missingFields = requiredFields.filter(field => !requestData[field]);
+                
+                if (missingFields.length > 0) {
+                    const errorMsg = `Отсутствуют обязательные поля: ${missingFields.join(', ')}`;
+                    console.error(errorMsg);
+                    bookingStatus.className = 'message error';
+                    bookingStatus.textContent = 'Ошибка: ' + errorMsg;
+                    return;
+                }
+                
+                // Отправляем данные на сервер
+                fetch('/api/submit-quote', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                })
+                .then(function(response) {
+                    console.log("Получен ответ, статус:", response.status);
+                    return response.json();
+                })
+                .then(function(data) {
+                    console.log("Данные ответа:", data);
+                    
+                    if (data.success) {
+                        bookingStatus.className = 'message success';
+                        bookingStatus.textContent = 'Бронирование успешно отправлено! Номер бронирования: ' + data.booking_id;
+                        
+                        // Уведомляем Telegram о успешном бронировании, если это возможно
+                        if (webapp && webapp.MainButton) {
+                            webapp.MainButton.text = "Вернуться";
+                            webapp.MainButton.show();
+                            webapp.MainButton.onClick(function() {
+                                webapp.close();
+                            });
+                        }
+                    } else {
+                        bookingStatus.className = 'message error';
+                        bookingStatus.textContent = 'Ошибка: ' + (data.error || 'Неизвестная ошибка');
+                    }
+                })
+                .catch(function(error) {
+                    console.error("Ошибка при отправке данных:", error);
+                    bookingStatus.className = 'message error';
+                    bookingStatus.textContent = 'Ошибка отправки: ' + error.message;
+                });
+            } catch (error) {
+                console.error("Ошибка в функции submitQuote:", error);
+                alert("Произошла ошибка при отправке данных. Попробуйте еще раз.");
+            }
+        }
+    </script>
+</body>
+</html> 

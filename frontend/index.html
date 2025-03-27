@@ -496,6 +496,16 @@
                 // Показываем подтверждение бронирования
                 webapp.showConfirm(`Подтвердите бронирование:\n\n${apartment.title}\nЗаезд: ${checkIn}\nВыезд: ${checkOut}\nСтоимость: ${totalPrice} ₽`, async (confirmed) => {
                     if (confirmed) {
+                        // Варианты бронирования
+                        // 1. Использовать API напрямую
+                        // 2. Перейти на страницу бронирования для получения дополнительных данных
+                        
+                        // Вариант 2: Переход на страницу бронирования с предзаполненными полями
+                        const bookingUrl = `/get-quote?apartment_id=${apartmentId}&check_in=${checkIn}&check_out=${checkOut}`;
+                        window.location.href = bookingUrl;
+                        
+                        /* 
+                        // Вариант 1: Отключенный код прямого API запроса
                         const bookingData = {
                             user_id: user.id,
                             apartment_id: apartmentId,
@@ -521,6 +531,7 @@
                         } else {
                             throw new Error('Ошибка при создании бронирования');
                         }
+                        */
                     }
                 });
             } catch (error) {

@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Расчет стоимости - Замок{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="mb-0">Рассчитать стоимость бронирования</h2>
+                </div>
+                <div class="card-body">
+                    <form id="quote-form">
+                        <div class="form-group mb-3">
+                            <label for="apartment-id">Выберите апартаменты:</label>
+                            <select class="form-control" id="apartment-id" required>
+                                <option value="">Выберите апартаменты</option>
+                                {% for apartment in apartments %}
+                                <option value="{{ apartment.id }}">{{ apartment.title }} - {{ apartment.address }} ({{ apartment.price_per_day }} руб/сутки)</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="form-group">
+                                    <label for="check-in-date">Дата заезда:</label>
+                                    <input type="date" class="form-control" id="check-in-date" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="form-group">
+                                    <label for="check-out-date">Дата выезда:</label>
+                                    <input type="date" class="form-control" id="check-out-date" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button type="button" id="calculate-btn" class="btn btn-primary btn-lg mb-4">Рассчитать стоимость</button>
+                        
+                        <div id="quote-result" style="display: none;" class="mb-4"></div>
+                        
+                        <div id="booking-form" style="display: none;">
+                            <hr>
+                            <h4 class="mb-3">Информация для бронирования</h4>
+                            
+                            <div class="form-group mb-3">
+                                <label for="name">Ваше имя:</label>
+                                <input type="text" class="form-control" id="name" required>
+                            </div>
+                            
+                            <div class="form-group mb-3">
+                                <label for="phone">Телефон:</label>
+                                <input type="tel" class="form-control" id="phone" required>
+                            </div>
+                            
+                            <div class="form-group mb-3">
+                                <label for="email">Email (необязательно):</label>
+                                <input type="email" class="form-control" id="email">
+                            </div>
+                            
+                            <button type="button" id="booking-btn" class="btn btn-success btn-lg">Забронировать</button>
+                        </div>
+                    </form>
+                    
+                    <div id="loading-spinner" style="display: none;" class="text-center mt-3">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Загрузка...</span>
+                        </div>
+                        <p class="mt-2">Обрабатываем ваш запрос...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/get_quote.js') }}"></script>
+<script>
+    // Устанавливаем минимальную дату для полей выбора даты (сегодня)
+    document.addEventListener('DOMContentLoaded', function() {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('check-in-date').min = today;
+        document.getElementById('check-out-date').min = today;
+        
+        // Показываем форму для бронирования
+        const bookingForm = document.getElementById('booking-form');
+        if (bookingForm) bookingForm.style.display = 'block';
+    });
+</script>
+{% endblock %} 

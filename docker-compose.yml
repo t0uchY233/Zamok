@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  zamok-app:
+    build: .
+    container_name: zamok-app
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "8000:5000"
+    volumes:
+      - ./instance:/app/instance
+      - ./logs:/app/logs
+    command: python run_all.py
+    networks:
+      - zamok-network
+
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: zamok-ngrok
+    restart: unless-stopped
+    environment:
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
+    ports:
+      - "4040:4040"
+    command: http zamok-app:5000
+    networks:
+      - zamok-network
+    depends_on:
+      - zamok-app
+
+networks:
+  zamok-network:
+    driver: bridge 
